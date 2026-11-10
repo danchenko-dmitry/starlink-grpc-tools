@@ -89,6 +89,57 @@ This group holds information about the current state of the user terminal.
 : **gps_enabled** : Boolean indicating whether or not the user terminal will
     use GPS for position data if and when it becomes ready.
 : **gps_sats** : Number of satellites actively being used.
+: **alignment_tilt_angle_deg** : Physical tilt of the dish, in degrees.
+: **alignment_desired_azimuth** : Target azimuth, in degrees, that the dish
+    is trying to point toward.
+: **alignment_desired_elevation** : Target elevation, in degrees, that the
+    dish is trying to point toward.
+: **alignment_attitude_uncertainty_deg** : Estimated uncertainty of dish
+    attitude, in degrees.
+: **ready_cady** : Boolean indicating whether the CADY subsystem is ready.
+: **ready_scp** : Boolean indicating whether the system control processor is
+    ready.
+: **ready_l1l2** : Boolean indicating whether Layer 1/2 processing is ready.
+: **ready_xphy** : Boolean indicating whether the transceiver PHY is ready.
+: **ready_aap** : Boolean indicating whether the active antenna processor is
+    ready.
+: **ready_rf** : Boolean indicating whether the RF subsystem is ready.
+: **init_attitude_initialization** : Seconds from boot until attitude
+    initialization completed, or None if not reported.
+: **init_burst_detected** : Seconds from boot until first satellite burst was
+    detected, or None if not reported.
+: **init_ekf_converged** : Seconds from boot until the attitude EKF converged,
+    or None if not reported.
+: **init_first_cplane** : Seconds from boot until first control-plane
+    connection, or None if not reported.
+: **init_first_pop_ping** : Seconds from boot until first PoP ping succeeded,
+    or None if not reported.
+: **init_gps_valid** : Seconds from boot until GPS became valid, or None if
+    not reported.
+: **init_initial_network_entry** : Seconds from boot until initial network
+    entry, or None if not reported.
+: **init_network_schedule** : Seconds from boot until first network schedule,
+    or None if not reported.
+: **init_rf_ready** : Seconds from boot until RF ready, or None if not
+    reported.
+: **init_stable_connection** : Seconds from boot until stable connection, or
+    None if not reported.
+: **upsu_dish_power** : Instantaneous dish power draw reported by UPSU, in
+    watts, or None if UPSU stats are not available.
+: **upsu_router_power** : Instantaneous router power draw reported by UPSU,
+    in watts, or None if UPSU stats are not available.
+: **plc_receiving** : Boolean indicating whether Starlink Power (PLC) telemetry
+    is being received, or None if PLC stats are not available.
+: **plc_state_of_charge** : Battery state of charge (percent), or None if PLC
+    stats are not available.
+: **plc_battery_health** : Battery health value reported by Starlink Power, or
+    None if PLC stats are not available.
+: **plc_average_time_to_empty** : Estimated time to empty reported by Starlink
+    Power, or None if PLC stats are not available.
+: **plc_average_time_to_full** : Estimated time to full reported by Starlink
+    Power, or None if PLC stats are not available.
+: **plc_thermal_throttle_level** : Thermal throttle level of Starlink Power, or
+    None if PLC stats are not available.
 
 Obstruction detail status data
 ------------------------------
@@ -176,6 +227,8 @@ their nature, but the field names are pretty self-explanatory.
     1048576) in *alerts*.
 : **alert_upsu_router_port_slow** : Alert corresponding with bit 21 (bit mask
     2097152) in *alerts*.
+: **alert_no_ethernet_link** : Alert corresponding with bit 22 (bit mask
+    4194304) in *alerts*.
 
 Location data
 -------------
@@ -458,6 +511,34 @@ StatusDict = TypedDict(
         "gps_ready": bool,
         "gps_enabled": bool,
         "gps_sats": int,
+        "alignment_tilt_angle_deg": Optional[float],
+        "alignment_desired_azimuth": Optional[float],
+        "alignment_desired_elevation": Optional[float],
+        "alignment_attitude_uncertainty_deg": Optional[float],
+        "ready_cady": Optional[bool],
+        "ready_scp": Optional[bool],
+        "ready_l1l2": Optional[bool],
+        "ready_xphy": Optional[bool],
+        "ready_aap": Optional[bool],
+        "ready_rf": Optional[bool],
+        "init_attitude_initialization": Optional[int],
+        "init_burst_detected": Optional[int],
+        "init_ekf_converged": Optional[int],
+        "init_first_cplane": Optional[int],
+        "init_first_pop_ping": Optional[int],
+        "init_gps_valid": Optional[int],
+        "init_initial_network_entry": Optional[int],
+        "init_network_schedule": Optional[int],
+        "init_rf_ready": Optional[int],
+        "init_stable_connection": Optional[int],
+        "upsu_dish_power": Optional[float],
+        "upsu_router_power": Optional[float],
+        "plc_receiving": Optional[bool],
+        "plc_state_of_charge": Optional[int],
+        "plc_battery_health": Optional[int],
+        "plc_average_time_to_empty": Optional[int],
+        "plc_average_time_to_full": Optional[int],
+        "plc_thermal_throttle_level": Optional[int],
     })
 
 ObstructionDict = TypedDict(
@@ -864,6 +945,11 @@ def status_data(
     device_info = getattr(status, "device_info", None)
     gps_stats = getattr(status, "gps_stats", None)
     inhibit_gps = getattr(gps_stats, "inhibit_gps", None)
+    alignment_stats = getattr(status, "alignment_stats", None)
+    ready_states = getattr(status, "ready_states", None)
+    init_dur = getattr(status, "initialization_duration_seconds", None)
+    upsu_stats = getattr(status, "upsu_stats", None)
+    plc_stats = getattr(status, "plc_stats", None)
     return {
         "id": getattr(device_info, "id", None),
         "hardware_version": getattr(device_info, "hardware_version", None),
@@ -888,6 +974,36 @@ def status_data(
         "gps_ready": getattr(gps_stats, "gps_valid", None),
         "gps_enabled": None if inhibit_gps is None else not inhibit_gps,
         "gps_sats": getattr(gps_stats, "gps_sats", None),
+        "alignment_tilt_angle_deg": getattr(alignment_stats, "tilt_angle_deg", None),
+        "alignment_desired_azimuth": getattr(alignment_stats, "desired_boresight_azimuth_deg", None),
+        "alignment_desired_elevation": getattr(alignment_stats, "desired_boresight_elevation_deg",
+                                               None),
+        "alignment_attitude_uncertainty_deg": getattr(alignment_stats, "attitude_uncertainty_deg",
+                                                      None),
+        "ready_cady": getattr(ready_states, "cady", None),
+        "ready_scp": getattr(ready_states, "scp", None),
+        "ready_l1l2": getattr(ready_states, "l1l2", None),
+        "ready_xphy": getattr(ready_states, "xphy", None),
+        "ready_aap": getattr(ready_states, "aap", None),
+        "ready_rf": getattr(ready_states, "rf", None),
+        "init_attitude_initialization": getattr(init_dur, "attitude_initialization", None),
+        "init_burst_detected": getattr(init_dur, "burst_detected", None),
+        "init_ekf_converged": getattr(init_dur, "ekf_converged", None),
+        "init_first_cplane": getattr(init_dur, "first_cplane", None),
+        "init_first_pop_ping": getattr(init_dur, "first_pop_ping", None),
+        "init_gps_valid": getattr(init_dur, "gps_valid", None),
+        "init_initial_network_entry": getattr(init_dur, "initial_network_entry", None),
+        "init_network_schedule": getattr(init_dur, "network_schedule", None),
+        "init_rf_ready": getattr(init_dur, "rf_ready", None),
+        "init_stable_connection": getattr(init_dur, "stable_connection", None),
+        "upsu_dish_power": getattr(upsu_stats, "dish_power", None),
+        "upsu_router_power": getattr(upsu_stats, "router_power", None),
+        "plc_receiving": getattr(plc_stats, "receiving_plc", None),
+        "plc_state_of_charge": getattr(plc_stats, "state_of_charge", None),
+        "plc_battery_health": getattr(plc_stats, "battery_health", None),
+        "plc_average_time_to_empty": getattr(plc_stats, "average_time_to_empty", None),
+        "plc_average_time_to_full": getattr(plc_stats, "average_time_to_full", None),
+        "plc_thermal_throttle_level": getattr(plc_stats, "thermal_throttle_level", None),
     }, {
         "wedges_fraction_obstructed[]": [None] * 12,  # obsoleted in grpc service
         "raw_wedges_fraction_obstructed[]": [None] * 12,  # obsoleted in grpc service
